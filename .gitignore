@@ -8,3 +8,4 @@ wheels/
 .txt
 # Virtual environments
 .venv
+.env
