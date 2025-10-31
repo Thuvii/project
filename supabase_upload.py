@@ -39,8 +39,11 @@ def upload_contents(local_dir,supa_folder_path,supa_bkname):
                     file=file_body,
                     file_options={"content-type": "text/plain","upsert": "true"},
                 )
+                if res.status_code == "200":
+                    print("good, uploaded")
             except Exception as e:
                 print(f"error: {e}")
+            
 
 
 def main():
