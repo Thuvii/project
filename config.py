@@ -1,1 +1,2 @@
 SEARCH_WORD ='fraud'
+NUMBER_OF_LINKS = 10

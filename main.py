@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from config import SEARCH_WORD
+from config import SEARCH_WORD,NUMBER_OF_LINKS
 import time
 import os
 from bs4 import BeautifulSoup as bs
@@ -70,7 +70,7 @@ def collect_urls():
 
     #search and save urls
     filtered_urls = [] 
-    while len(filtered_urls) < 10:
+    while len(filtered_urls) < NUMBER_OF_LINKS:
         result_links = driver.find_elements(By.CLASS_NAME, "search-url")
         urls = [link.text.strip() for link in result_links if link.text.strip()]
         new_urls = [u for u in urls if is_allowed(u) and u not in filtered_urls]
@@ -102,52 +102,51 @@ def clean_text(text):
     text = re.sub(r"[^a-zA-Z\s]", "", text)
     return text.lower().strip()
 
-
-def extract_keywords(text, top_n=3):
-    doc = nlp(text.lower())
-    freq = {}
-    for token in doc:
-        if token.is_alpha and not token.is_stop and len(token.text) > 2:
-            freq[token.lemma_] = freq.get(token.lemma_, 0) + 1
-    sorted_words = sorted(freq.items(), key=lambda x: x[1], reverse=True)
-    keywords = [w for w, _ in sorted_words[:top_n]]
-    return "-".join(keywords) if keywords else "article"
-
 #scraping urls in filtered_urls.txt
-def scrape_urls(filtered_urls,save_dir):
+def scrape_urls(filtered_urls, save_dir):
     for url in filtered_urls:
         try:
             response = requests.get(url, timeout=10)
             if response.status_code != 200:
-                print('skip code not 200')
+                print('status code not 200')
                 continue
 
             soup = bs(response.text, "html.parser")
             content_div = soup.find("div", class_="block-region-middle")
             if not content_div:
-                print("no content")
+                print(f"No content")
                 continue
 
             paragraphs = content_div.find_all("p")
             text = "\n".join([p.get_text(strip=True) for p in paragraphs])
-
-        
-            filename = extract_keywords(text)
+            text = clean_text(text)
+            
+            doc = nlp(text)
+            cleaned_text = " ".join(
+                [token.text for token in doc if token.is_alpha and not token.is_stop]
+            )
+            
+            filename = (
+                url.replace("https://", "")
+                   .replace("http://", "")
+                   .replace("/", "-")
+                   .replace("?", "-")
+                   .replace("=", "-")
+                   .replace("&", "-")
+                   .replace("%", "-")
+            )
+            # Keep only safe filename characters
+            filename = re.sub(r"[^a-zA-Z0-9\-.]", "-", filename)
             file_path = os.path.join(save_dir, f"{filename}.txt")
 
-        
-            i = 1
-            while os.path.exists(file_path):
-                file_path = os.path.join(save_dir, f"{filename}_{i}.txt")
-                i += 1
-
+            # Write (replace if exists)
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(text)
+                f.write(cleaned_text)
 
-            print(f"Saved: {file_path}")
+            print(f"Saved (replaced if existed): {file_path}")
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error {url}: {e}")
     
 def main():
     collect_urls()
