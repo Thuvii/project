@@ -21,14 +21,25 @@ SUPABASE_BUCKET_NAME = "DTSC_project"
 SUPABASE_FOLDER_PATH = "txt/"
 
 def upload_contents(local_dir,supa_folder_path,supa_bkname):
+    try:
+        existing_files = supabase.storage.from_(supa_bkname).list(supa_folder_path)
+        existing_filenames = {f["name"] for f in existing_files}
+    except Exception as e:
+        print(f"Could not fetch existing files: {e}")
+        existing_filenames = set()
+
     for file in os.listdir(local_dir):
-        local_file_path = os.path.join(local_dir,file)
+        local_file_path = os.path.join(local_dir, file)
         if not os.path.isfile(local_file_path):
             continue
         if not file.endswith('.txt'):
-            print(f'{file} not a .txt')
+            print(f"⏩ Skipped (not txt): {file}")
             continue
-        
+
+        # fix duplicates problem
+        if file in existing_filenames:
+            print(f"duplicate: {file}")
+            continue
 
         
         supabase_file_path = os.path.join(supa_folder_path, file).replace('\\', '/')
@@ -39,8 +50,6 @@ def upload_contents(local_dir,supa_folder_path,supa_bkname):
                     file=file_body,
                     file_options={"content-type": "text/plain","upsert": "true"},
                 )
-                # if res.status_code == "200":
-                #     print("good, uploaded")
             except Exception as e:
                 print(f"error: {e}")
             
