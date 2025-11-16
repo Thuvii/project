@@ -36,7 +36,7 @@ def upload_contents(local_dir,supa_folder_path,supa_bkname):
             print(f"⏩ Skipped (not txt): {file}")
             continue
 
-        # fix duplicates problem
+        # fix duplicates problem "hopefully"
         if file in existing_filenames:
             print(f"duplicate: {file}")
             continue
